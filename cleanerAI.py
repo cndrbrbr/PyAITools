@@ -277,19 +277,39 @@ def process_one(
     validate_python: bool,
     force_all_text: bool
 ) -> Tuple[bool, str]:
-    rel = path.name if out_dir is None else path.relative_to(Path.cwd()) if path.is_absolute() else path
-    target = path if in_place else (out_dir / rel if out_dir else path)
+    """
+    Verarbeitet eine einzelne Datei und schreibt das Ergebnis entweder:
+      - in-place (in dieselbe Datei) oder
+      - in ein beliebiges Ausgabeverzeichnis out_dir (Ordner werden bei Bedarf angelegt).
+    """
 
+    # --- Zielpfad bestimmen ---
+    if in_place or not out_dir:
+        target = path
+    else:
+        # Wenn 'path' absolut ist, nehmen wir den Dateinamen (Struktur ist sonst unbekannt).
+        # Wenn 'path' relativ ist (z. B. "src/foo/bar.py"), erhalten wir die Struktur unterhalb von out_dir.
+        rel = path.name if path.is_absolute() else path
+        target = (out_dir / rel).resolve()
+
+    # --- Zielordner anlegen, falls nötig (bei nicht in-place) ---
+    if not in_place:
+        target.parent.mkdir(parents=True, exist_ok=True)
+
+    # --- Backup nur bei In-Place-Bearbeitung ---
     if backup and in_place:
         bak = path.with_suffix(path.suffix + ".bak")
         try:
-            if not bak.exists():
+            if path.exists() and not bak.exists():
                 shutil.copy2(str(path), str(bak))
         except Exception:
+            # Backup-Fehler ignorieren, Verarbeitung trotzdem versuchen
             pass
 
+    # --- Dateiendung prüfen ---
     ext = path.suffix.lower()
 
+    # --- Routing nach Endung (diese Funktionen müssen die Datei nach 'target' schreiben) ---
     if ext == ".docx":
         return clean_docx(path, target)
     if ext == ".pptx":
@@ -297,6 +317,7 @@ def process_one(
     if ext == ".xlsx":
         return clean_xlsx(path, target)
 
+    # --- Textdateien behandeln ---
     if should_treat_as_text(path, force_all_text):
         return clean_textfile(path, target, validate_python=validate_python)
 
