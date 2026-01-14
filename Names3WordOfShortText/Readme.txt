@@ -13,3 +13,19 @@ http://localhost:11434/api/tags
 Model Loaded
 python.exe -m pip install --upgrade pip
 python.exe -m pip install requests
+
+┌──────────────────────────┐
+│ Windows Computer         │
+│                          │
+│  Python Script           │
+│   → http://localhost:11434
+│                          │
+└───────────▲──────────────┘
+            │
+┌───────────┴──────────────┐
+│ Docker Container "ollama"│
+│                          │
+│  Ollama API Server       │
+│  Model in /root/.ollama  │
+│                          │
+└──────────────────────────┘
